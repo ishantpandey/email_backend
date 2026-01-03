@@ -10,10 +10,6 @@ const emailQueue = new Queue('emailQueue', {
   connection: redis,
 });
 
-// Create cleanup queue for background tasks
-const cleanupQueue = new Queue('cleanupQueue', {
-  connection: redis,
-});
 
 // Create nodemailer transporter
 const transporter = nodemailer.createTransport({

@@ -1,5 +1,4 @@
-const { emailQueue } = require("./emailQueue");
-const { cleanupQueue } = require("./emailQueue");
+const { emailQueue } = require("./emailQueue")
 
 // Simple priority mapping - ensures integer values for BullMQ
 function getPriority(priority) {

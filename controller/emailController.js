@@ -194,50 +194,6 @@ const sendBulkEmails = async (req, res) => {
 };
 
 /**
- * Send password reset email (dedicated endpoint)
- * @route POST /api/email/send-password-reset
- * @body { email, userName, resetLink, priority? }
- */
-const sendPasswordResetEmail = async (req, res) => {
-  try {
-    const { email, userName, resetLink, priority = 'high' } = req.body;
-    
-    // Basic validation
-    if (!email || !userName || !resetLink) {
-      return res.status(HTTP_STATUS.BAD_REQUEST).json({
-        success: false,
-        message: 'Email, userName, and resetLink are required'
-      });
-    }
-    
-    // Queue password reset email
-    const job = await queueHelpers.addPasswordResetEmail(email, userName, resetLink, { priority });
-    
-    // Success response
-    res.status(HTTP_STATUS.OK).json({
-      success: true,
-      message: 'Password reset email queued successfully',
-      data: {
-        jobId: job.id,
-        type: 'password-reset',
-        email,
-        userName,
-        priority,
-        queuedAt: new Date().toISOString()
-      }
-    });
-    
-  } catch (error) {
-    console.error('❌ Password reset email error:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-      success: false,
-      message: 'Failed to queue password reset email',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
-  }
-};
-
-/**
  * Get queue statistics
  * @route GET /api/email/queue/stats
  */
@@ -508,7 +464,6 @@ const getAllUserEmails = async (req, res) => {
 module.exports = {
   sendEmail,
   sendBulkEmails,
-  sendPasswordResetEmail,
   sendToAllUsers,
   getUserEmails,
   getAllUserEmails,
