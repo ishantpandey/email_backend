@@ -53,4 +53,6 @@ jobs:
             -e REDIS_HOST=host.docker.internal \
             -e REDIS_PORT=6379 \
             -e REDIS_PASSWORD="${{ secrets.REDIS_PASSWORD }}" \
+            -e EMAIL_USER="${{ secrets.EMAIL_USER }}" \
+            -e EMAIL_PASS="${{ secrets.EMAIL_PASS }}" \
             ${{ secrets.DOCKER_USERNAME }}/email-backend:latest
