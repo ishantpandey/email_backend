@@ -9,12 +9,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: docker/setup-buildx-action@v3
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
+
       - name: Build and Push Image
         uses: docker/build-push-action@v5
         with:
@@ -29,23 +32,26 @@ jobs:
     needs: build
     steps:
       - run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
       - name: Deploy Container
         run: |
           docker network create mern-net 2>/dev/null || true
           docker stop email-backend || true
           docker rm email-backend || true
           docker pull ${{ secrets.DOCKER_USERNAME }}/email-backend:latest
+
           docker run -d \
             --name email-backend \
             --restart unless-stopped \
             --network mern-net \
+            --add-host=host.docker.internal:host-gateway \
             -p 5000:5000 \
             -e NODE_ENV=production \
             -e PORT=5000 \
             -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
             -e MONGO_URI="${{ secrets.MONGO_URI }}" \
             -e FRONTEND_URL="${{ secrets.FRONTEND_URL }}" \
-            -e REDIS_HOST="${{ secrets.REDIS_HOST }}" \
-            -e REDIS_PORT="${{ secrets.REDIS_PORT }}" \
+            -e REDIS_HOST=host.docker.internal \
+            -e REDIS_PORT=6379 \
             -e REDIS_PASSWORD="${{ secrets.REDIS_PASSWORD }}" \
             ${{ secrets.DOCKER_USERNAME }}/email-backend:latest
