@@ -2,8 +2,8 @@
 const queueHelpers = require('../../service/emailService/queueHelpers');
 
 // Models
-const User = require('../../config/model/user');
-const Email = require('../../config/model/email');
+const User = require('../../model/user');
+const Email = require('../../model/email');
 
 // Utilities
 const {

@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const Email = require('../config/model/email');
+const Email = require('../model/email');
 
 /**
  * Get email history for a user

@@ -1,6 +1,6 @@
 // Models
-const User = require('../../config/model/user');
-const Email = require('../../config/model/email');
+const User = require('../../model/user');
+const Email = require('../../model/email');
 const mongoose = require('mongoose');
 
 // Utilities

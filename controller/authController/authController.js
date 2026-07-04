@@ -1,6 +1,6 @@
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
-const User = require("../../config/model/user");
+const User = require("../../model/user");
 const { generateToken } = require("../../service/authService/authService");
 const queueHelpers = require("../../service/emailService/queueHelpers");
 const jwt = require('jsonwebtoken');
