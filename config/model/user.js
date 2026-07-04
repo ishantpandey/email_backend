@@ -23,8 +23,21 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, "Password is required"],
       minlength: [6, "Password must be at least 6 characters"],
+      default: undefined,
+    },
+    googleId: {
+      type: String,
+      default: undefined,
+    },
+    authProvider: {
+      type: String,
+      enum: ["local", "google"],
+      default: "local",
+    },
+    profileImage: {
+      type: String,
+      default: undefined,
     },
     isEmailVerified: {
       type: Boolean,

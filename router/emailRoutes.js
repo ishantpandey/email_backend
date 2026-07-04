@@ -5,12 +5,16 @@ const {
   sendEmail,
   sendBulkEmails,
   sendToAllUsers,
-  getUserEmails,
+} = require('../controller/emailController/emailSendController');
+
+const {
   getAllUserEmails,
-  getQueueStats,
-  //retryFailedJobs,
-  //getEmailServiceHealth
-} = require('../controller/emailController');
+  deleteUserEmails,
+  getUserEmails,
+  updateEmailStarStatus,
+} = require('../controller/emailController/emailController');
+
+const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -19,15 +23,10 @@ router.post('/send', sendEmail);                    // Send single email
 router.post('/bulk-send', sendBulkEmails);          // Send bulk emails
 router.post('/send-all', sendToAllUsers);           // Send email to all registered users
 
-// Email history routes
-router.get('/users', getAllUserEmails);             // Get all users email list
+router.get('/list', authMiddleware, getAllUserEmails);   // Get complete email list for authenticated user
 router.get('/history/:userId', getUserEmails);      // Get user email history
+router.patch('/star', authMiddleware, updateEmailStarStatus); // Update starred status for emails
+router.delete('/delete', authMiddleware, deleteUserEmails); // Delete emails by ID list
 
-// Queue management routes
-router.get('/queue/stats', getQueueStats);           // Get queue statistics
-//router.post('/queue/retry-failed', retryFailedJobs); // Retry failed jobs
-
-// Health check route
-//router.get('/test', getEmailServiceHealth); // Service health check
 
 module.exports = router;

@@ -6,8 +6,9 @@ const {
   logout,
   verifyEmail,
   requestPasswordReset,
-  resetPassword
-} = require("../controller/authController");
+  resetPassword,
+  googleAuth
+} = require("../controller/authController/authController");
 const authMiddleware = require("../middleware/auth");
 
 const router = express.Router();
@@ -16,6 +17,9 @@ const router = express.Router();
 router.post("/register", register);
 router.post("/login", login);
 router.post("/logout", logout);
+
+// Google OAuth Route
+router.post("/google", googleAuth);
 
 // Password Reset Routes
 router.post("/request-password-reset", requestPasswordReset);

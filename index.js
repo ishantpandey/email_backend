@@ -36,7 +36,7 @@ app.use(cookieParser());
 // Request logging (development only)
 if (process.env.NODE_ENV !== 'production') {
   app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+   
     next();
   });
 }
@@ -77,18 +77,11 @@ app.use((err, req, res, next) => {
 
 // Start server
 const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
+ app.listen(PORT, () => {
+ // console.log(`🚀 Server running at http://localhost:${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log('📧 Email queue service is active');
 });
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('🔄 SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    console.log('✅ Process terminated');
-  });
-});
 
 module.exports = app;

@@ -59,6 +59,10 @@ const emailSchema = new mongoose.Schema({
   },
   errorMessage: {
     type: String
+  },
+  isStarred: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true

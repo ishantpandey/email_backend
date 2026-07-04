@@ -1,8 +1,8 @@
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
-const User = require("../config/model/user");
-const { generateToken } = require("../service/service");
-const queueHelpers = require("../service/queueHelpers");
+const User = require("../../config/model/user");
+const { generateToken } = require("../../service/authService/authService");
+const queueHelpers = require("../../service/emailService/queueHelpers");
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
@@ -39,7 +39,7 @@ const register = async (req, res) => {
       email,
       password: hashedPassword,
       isEmailVerified: false,
-      verificationExpiresAt: new Date(Date.now() + 2 * 60 * 1000) // 2 minutes for verification
+      verificationExpiresAt: new Date(Date.now() + 30 * 60 * 1000) // 30 minutes for verification
     });
 
     await newUser.save();
@@ -173,7 +173,8 @@ const getProfile = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        isEmailVerified: user.isEmailVerified
+        isEmailVerified: user.isEmailVerified,
+        profileImage: user.profileImage
       }
     });
 
@@ -387,6 +388,97 @@ const resetPassword = async (req, res) => {
   }
 };
 
+// Google OAuth Controller
+// Expects { idToken } in the request body (sent from the frontend after Google sign-in)
+const googleAuth = async (req, res) => {
+  try {
+    const { access_token } = req.body;
+
+    if (!access_token) {
+      return res.status(400).json({
+        success: false,
+        message: "Google access token is required"
+      });
+    }
+
+    // Verify the Google access token by calling the userinfo endpoint
+    const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${access_token}` }
+    });
+
+    if (!userInfoResponse.ok) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid or expired Google access token"
+      });
+    }
+
+    const { sub: googleId, email, name, email_verified, picture } = await userInfoResponse.json();
+    if (!email_verified) {
+      return res.status(400).json({
+        success: false,
+        message: "Google account email is not verified"
+      });
+    }
+
+    // Find existing user by googleId or email
+    let user = await User.findOne({ $or: [{ googleId }, { email }] });
+
+    if (user) {
+      // If user exists via local auth, link Google account
+      if (!user.googleId) {
+        user.googleId = googleId;
+        user.authProvider = "google";
+        user.isEmailVerified = true;
+        user.verificationExpiresAt = undefined;
+        user.emailVerificationToken = undefined;
+      }
+      // Always update profile image in case it changed
+      if (picture) user.profileImage = picture;
+      await user.save();
+    } else {
+      // Create new user from Google profile
+      user = new User({
+        name,
+        email,
+        googleId,
+        authProvider: "google",
+        isEmailVerified: true,
+        profileImage: picture
+      });
+      await user.save();
+    }
+   
+    const tokenPayload = {
+      id: user._id,
+      email: user.email,
+      name: user.name
+    };
+    const token = generateToken(tokenPayload);
+
+    res.status(200).json({
+      success: true,
+      message: "Google authentication successful",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        isEmailVerified: user.isEmailVerified,
+        authProvider: user.authProvider,
+        profileImage: user.profileImage
+      },
+      token
+    });
+
+  } catch (error) {
+    console.error("Google auth error:", error);
+    res.status(401).json({
+      success: false,
+      message: "Invalid or expired Google token"
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -394,5 +486,6 @@ module.exports = {
   logout,
   verifyEmail,
   requestPasswordReset,
-  resetPassword
+  resetPassword,
+  googleAuth
 };
