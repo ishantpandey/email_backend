@@ -48,13 +48,25 @@ const askRag = async (question) => {
     const retrievedDocs = await searchDocuments(question, 5);
 
     /**
-     * If nothing found
+     * If nothing found, use general LLM response
      */
     if (!retrievedDocs.length) {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: {
+          parts: [{ text: question }]
+        }
+      });
+
+      const answer =
+        response.response?.text() ||
+        response.candidates?.[0]?.content?.parts?.[0]?.text ||
+        "I'm here to help! How can I assist you?";
+
       return {
-        answer:
-          "I couldn't find any relevant information in the uploaded documents.",
+        answer,
         sources: [],
+        mode: "conversational",
       };
     }
 
@@ -67,16 +79,13 @@ const askRag = async (question) => {
      * Prompt
      */
     const prompt = `
-You are a helpful AI assistant.
+You are a helpful AI assistant with access to specific documents.
 
-Answer ONLY from the provided context.
+Answer the question using the provided context below.
 
-If the answer is not present in the context,
-say:
+If the answer is in the context, provide a detailed answer based on it.
 
-"I couldn't find that information in the uploaded documents."
-
-Do not make up information.
+If the question is not related to the context, you can answer conversationally.
 
 ------------------------------
 
@@ -92,7 +101,7 @@ ${question}
 
 ------------------------------
 
-Return only the answer.
+Provide a helpful answer:
 `;
 
     /**
@@ -100,32 +109,29 @@ Return only the answer.
      */
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: prompt,
+      contents: {
+        parts: [{ text: prompt }]
+      }
     });
 
     const answer =
-      response.text ||
+      response.response?.text() ||
       response.candidates?.[0]?.content?.parts?.[0]?.text ||
       "No answer generated.";
 
     return {
       answer,
-
       sources: retrievedDocs.map((doc) => ({
         documentId: doc.documentId,
-
         sourceName: doc.sourceName,
-
         sourceType: doc.sourceType,
-
         page: doc.page,
-
         score: doc.score,
       })),
+      mode: "document-based",
     };
   } catch (error) {
     console.error("RAG Error:", error);
-
     throw error;
   }
 };
