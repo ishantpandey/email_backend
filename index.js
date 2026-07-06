@@ -9,13 +9,30 @@ dotenv.config();
 
 // Database connection
 const connectDB = require("./config/db");
+const { connectRagDB } = require("./config/rag-db");
 
 // Routes
 const authRoutes = require("./router/authRoutes");
 const emailRoutes = require("./router/emailRoutes");
+const documentRoutes = require("./router/document.routes");
+const chatRoutes = require("./router/chat.routes");
+// Add this at the very top of your file
+const dns = require('node:dns');
+dns.setServers(['1.1.1.1', '8.8.8.8']); 
 
 // Initialize database connection
-connectDB();
+const initializeApp = async () => {
+  try {
+    await connectDB();
+    await connectRagDB();
+    console.log('✅ All database connections established');
+  } catch (error) {
+    console.error('❌ Database initialization failed:', error);
+    process.exit(1);
+  }
+};
+
+initializeApp();
 
 const app = express();
 
@@ -44,7 +61,8 @@ if (process.env.NODE_ENV !== 'production') {
 // API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/email", emailRoutes);
-
+app.use("/api/documents", documentRoutes);
+app.use("/api/chat", chatRoutes);
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({
