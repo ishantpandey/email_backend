@@ -29,7 +29,7 @@ const createEmbedding = async (text) => {
      * Generate embedding
      */
     const response = await ai.models.embedContent({
-      model: "gemini-embedding-001",
+      model: `${process.env.GEMINI_EMBEDDING_MODEL || "gemini-embedding-001"}`,
       contents: cleanedText,
     });
 

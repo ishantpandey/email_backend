@@ -52,7 +52,7 @@ const askRag = async (question) => {
      */
     if (!retrievedDocs.length) {
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: `${process.env.GEMINI_MODEL || "gemini-2.5-flash"}`,
         contents: {
           parts: [{ text: question }]
         }
@@ -108,7 +108,7 @@ Provide a helpful answer:
      * Generate answer
      */
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: `${process.env.GEMINI_MODEL || "gemini-2.5-flash"}`,
       contents: {
         parts: [{ text: prompt }]
       }
