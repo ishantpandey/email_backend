@@ -10,15 +10,16 @@ const {
   deleteDocument,
   getDocuments,
 } = require("../controller/ragController/document.controller");
+const authMiddleware = require("../middleware/auth");
 
-router.post("/pdf", upload.single("file"), uploadPdf);
+router.post("/pdf", authMiddleware, upload.single("file"), uploadPdf);
 
-router.post("/website", addWebsite);
+router.post("/website", authMiddleware, addWebsite);
 
-router.post("/text", addText);
+router.post("/text", authMiddleware, addText);
 
-router.get("/", getDocuments);
+router.get("/", authMiddleware, getDocuments);
 
-router.delete("/:documentId", deleteDocument);
+router.delete("/:documentId", authMiddleware, deleteDocument);
 
 module.exports = router;

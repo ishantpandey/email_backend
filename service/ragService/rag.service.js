@@ -2,12 +2,8 @@
 const ai = require("../../config/gemini");
 const { searchDocuments } = require("./vectorSearch.service");
 
-
-
 /**
- * =====================================================
- * Build Context from Retrieved Documents
- * =====================================================
+ * Build context from retrieved chunks
  */
 const buildContext = (documents = []) => {
   return documents
@@ -18,117 +14,126 @@ Document ${index + 1}
 Source: ${doc.sourceName}
 Type: ${doc.sourceType}
 Page: ${doc.page}
-Similarity Score: ${doc.score?.toFixed(4)}
 
-Content:
 ${doc.text}
 `;
     })
-    .join("\n----------------------------------------\n");
+    .join("\n\n---------------------------------\n\n");
 };
 
 /**
- * =====================================================
- * Ask Gemini using RAG
- * =====================================================
- *
- * @param {string} question
- *
- * @returns {Promise<Object>}
+ * Ask Question using RAG
  */
 const askRag = async (question) => {
   try {
-    if (!question || !question.trim()) {
+    if (!question?.trim()) {
       throw new Error("Question is required.");
     }
 
     /**
-     * Retrieve relevant chunks
+     * Retrieve relevant documents
      */
-    const retrievedDocs = await searchDocuments(question, 5);
+    const documents = await searchDocuments(question, 5);
+
+    console.log("Retrieved Documents");
+    console.log(documents);
 
     /**
-     * If nothing found, use general LLM response
+     * Filter low-quality matches
+     *
+     * You can adjust this threshold.
+     * Usually 0.70 - 0.85 works well.
      */
-    if (!retrievedDocs.length) {
-      const response = await ai.models.generateContent({
-        model: `${process.env.GEMINI_MODEL || "gemini-2.5-flash"}`,
-        contents: {
-          parts: [{ text: question }]
-        }
-      });
+    const filteredDocuments = documents.filter(
+      (doc) => doc.score >= 0.75
+    );
 
-      const answer =
-        response.response?.text() ||
-        response.candidates?.[0]?.content?.parts?.[0]?.text ||
-        "I'm here to help! How can I assist you?";
+    console.log("Filtered Documents");
+    console.log(filteredDocuments);
 
+    /**
+     * No relevant documents
+     */
+    if (!filteredDocuments.length) {
       return {
-        answer,
+        answer:
+          "I couldn't find that information in the uploaded documents.",
         sources: [],
-        mode: "conversational",
       };
     }
 
     /**
      * Build context
      */
-    const context = buildContext(retrievedDocs);
+    const context = buildContext(filteredDocuments);
 
     /**
-     * Prompt
+     * Strict Prompt
      */
     const prompt = `
-You are a helpful AI assistant with access to specific documents.
+You are a Retrieval-Augmented Generation (RAG) assistant.
 
-Answer the question using the provided context below.
+You MUST answer ONLY using the CONTEXT provided below.
 
-If the answer is in the context, provide a detailed answer based on it.
+==========================
+RULES
+==========================
 
-If the question is not related to the context, you can answer conversationally.
+1. Never use your own knowledge.
 
-------------------------------
+2. Never guess.
 
+3. Never use outside information.
+
+4. If the answer is NOT present in the context, reply EXACTLY:
+
+"I couldn't find that information in the uploaded documents."
+
+5. Do not explain why.
+
+6. Do not provide extra knowledge.
+
+7. Keep the answer concise.
+
+==========================
 CONTEXT
+==========================
 
 ${context}
 
-------------------------------
-
+==========================
 QUESTION
+==========================
 
 ${question}
 
-------------------------------
-
-Provide a helpful answer:
+==========================
+ANSWER
+==========================
 `;
 
     /**
-     * Generate answer
+     * Ask Gemini
      */
     const response = await ai.models.generateContent({
-      model: `${process.env.GEMINI_MODEL || "gemini-2.5-flash"}`,
-      contents: {
-        parts: [{ text: prompt }]
-      }
+      model: `${process.env.GEMINI_MODEL || "gemini-3.1-flash-lite"}`,
+      contents: prompt,
     });
 
     const answer =
-      response.response?.text() ||
+      response.text ||
       response.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "No answer generated.";
+      "I couldn't generate an answer.";
 
     return {
       answer,
-      sources: retrievedDocs.map((doc) => ({
-        documentId: doc.documentId,
+
+      sources: filteredDocuments.map((doc) => ({
         sourceName: doc.sourceName,
         sourceType: doc.sourceType,
         page: doc.page,
         score: doc.score,
       })),
-      mode: "document-based",
     };
   } catch (error) {
     console.error("RAG Error:", error);

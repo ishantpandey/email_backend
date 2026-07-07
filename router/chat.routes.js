@@ -1,5 +1,6 @@
 const express = require("express");
 const { chat } = require("../controller/ragController/chat.controller");
+const authMiddleware = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -15,6 +16,6 @@ const router = express.Router();
  *   "question": "What is React?"
  * }
  */
-router.post("/", chat);
+router.post("/", authMiddleware, chat);
 
 module.exports = router;
