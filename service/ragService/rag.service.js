@@ -95,6 +95,8 @@ RULES
 
 7. Keep the answer concise.
 
+8. If the answer have a list, format it as a numbered list.
+
 ==========================
 CONTEXT
 ==========================

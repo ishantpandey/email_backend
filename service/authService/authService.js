@@ -3,7 +3,7 @@ require('dotenv').config();
 
 // Generate single JWT token (24-hour expiry)
 function generateToken(payload) {
-    return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h' });
+    return jwt.sign(payload, process.env.JWT_SECRET);
 }
 
 // Verify JWT token middleware
