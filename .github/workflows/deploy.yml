@@ -46,13 +46,12 @@ jobs:
             --name email-backend \
             --restart unless-stopped \
             --network mern-net \
-            --add-host=host.docker.internal:host-gateway \
             -p 5000:5000 \
             -e NODE_ENV=production \
             -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
             -e MONGO_URI="${{ secrets.MONGO_URI }}" \
             -e FRONTEND_URL="${{ secrets.FRONTEND_URL }}" \
-            -e REDIS_HOST=host.docker.internal \
+            -e REDIS_HOST=redis \
             -e REDIS_PORT=6379 \
             -e EMAIL_USER="${{ secrets.EMAIL_USER }}" \
             -e EMAIL_PASS="${{ secrets.EMAIL_PASS }}" \
