@@ -41,6 +41,8 @@ jobs:
           docker pull ${{ secrets.DOCKER_USERNAME }}/email-backend:latest
 
           docker run -d \
+            --pull always \
+            --name email-backend \
             --name email-backend \
             --restart unless-stopped \
             --network mern-net \
