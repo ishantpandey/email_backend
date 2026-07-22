@@ -55,4 +55,9 @@ jobs:
             -e REDIS_PASSWORD="${{ secrets.REDIS_PASSWORD }}" \
             -e EMAIL_USER="${{ secrets.EMAIL_USER }}" \
             -e EMAIL_PASS="${{ secrets.EMAIL_PASS }}" \
+             -e GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" \
+             -e GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}" \
+             -e MONGO_RAG_URI="${{ secrets.MONGO_RAG_URI }}" \
+             -e GEMINI_MODEL="${{ secrets.GEMINI_MODEL }}" \
+              -e GEMINI_EMBEDDING_MODEL="${{ secrets.GEMINI_EMBEDDING_MODEL }}" \
             ${{ secrets.DOCKER_USERNAME }}/email-backend:latest
