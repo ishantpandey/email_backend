@@ -54,7 +54,6 @@ jobs:
             -e FRONTEND_URL="${{ secrets.FRONTEND_URL }}" \
             -e REDIS_HOST=host.docker.internal \
             -e REDIS_PORT=6379 \
-            -e REDIS_PASSWORD="${{ secrets.REDIS_PASSWORD }}" \
             -e EMAIL_USER="${{ secrets.EMAIL_USER }}" \
             -e EMAIL_PASS="${{ secrets.EMAIL_PASS }}" \
              -e GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" \
