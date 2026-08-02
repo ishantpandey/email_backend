@@ -2,19 +2,14 @@ const {
   PromptTemplate,
 } = require("@langchain/core/prompts");
 
-const ragPrompt =
-  PromptTemplate.fromTemplate(`
-You are a RAG assistant.
+const ragPrompt = PromptTemplate.fromTemplate(`
+You are a RAG assistant having a conversation with the user.
 
-Use ONLY the retrieved context to answer the question.
+Chat History:
+{chatHistory}
 
-If the answer can be reasonably inferred from multiple retrieved chunks, combine that information into a clear answer.
-
-Do not use outside knowledge.
-
-If the retrieved context truly does not contain enough information, reply exactly:
-
-"I couldn't find that information in the uploaded documents."
+Use the retrieved context AND the chat history to answer the question.
+If referring to previous messages, acknowledge them naturally.
 
 Context:
 {context}
@@ -22,7 +17,6 @@ Context:
 Question:
 {question}
 `);
-
 module.exports = {
   ragPrompt,
 };
