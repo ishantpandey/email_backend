@@ -1,11 +1,9 @@
-const { GoogleGenAI } = require("@google/genai");
-const dotenv = require("dotenv");
-dotenv.config();
+const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 
-const ai = new GoogleGenAI({
+const llm = new ChatGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY,
+  model: process.env.GEMINI_MODEL,
+  temperature: 0,
 });
 
-console.log("hii", process.env.GEMINI_API_KEY);
-
-module.exports = ai;
+module.exports = llm;

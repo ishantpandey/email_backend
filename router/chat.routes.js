@@ -1,21 +1,12 @@
 const express = require("express");
-const { chat } = require("../controller/ragController/chat.controller");
-const authMiddleware = require("../middleware/auth");
+
+const { askQuestion } = require("../controller/ragController/chat.controller.js");
 
 const router = express.Router();
 
-/**
- * ============================================
- * Chat with RAG
- * ============================================
- *
- * POST /api/chat
- *
- * Body:
- * {
- *   "question": "What is React?"
- * }
- */
-router.post("/", authMiddleware, chat);
+router.post(
+  "/",
+  askQuestion
+);
 
 module.exports = router;

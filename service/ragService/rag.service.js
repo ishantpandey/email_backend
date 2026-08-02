@@ -1,148 +1,72 @@
+const { createRagChain } = require("./chains/rag.chain");
 
-const ai = require("../../config/gemini");
-const { searchDocuments } = require("./vectorSearch.service");
+const { getVectorStore } = require("./vectorStore.service");
 
-/**
- * Build context from retrieved chunks
- */
-const buildContext = (documents = []) => {
-  return documents
-    .map((doc, index) => {
-      return `
-Document ${index + 1}
 
-Source: ${doc.sourceName}
-Type: ${doc.sourceType}
-Page: ${doc.page}
-
-${doc.text}
-`;
-    })
-    .join("\n\n---------------------------------\n\n");
-};
-
-/**
- * Ask Question using RAG
- */
 const askRag = async (question) => {
-  try {
-    if (!question?.trim()) {
-      throw new Error("Question is required.");
-    }
 
-    /**
-     * Retrieve relevant documents
-     */
-    const documents = await searchDocuments(question, 5);
+    const vectorStore = await getVectorStore();
 
-    console.log("Retrieved Documents");
-    console.log(documents);
+    const retriever = vectorStore.asRetriever({
 
-    /**
-     * Filter low-quality matches
-     *
-     * You can adjust this threshold.
-     * Usually 0.70 - 0.85 works well.
-     */
-    const filteredDocuments = documents.filter(
-      (doc) => doc.score >= 0.75
-    );
+        k: 5,
 
-    console.log("Filtered Documents");
-    console.log(filteredDocuments);
-
-    /**
-     * No relevant documents
-     */
-    if (!filteredDocuments.length) {
-      return {
-        answer:
-          "I couldn't find that information in the uploaded documents.",
-        sources: [],
-      };
-    }
-
-    /**
-     * Build context
-     */
-    const context = buildContext(filteredDocuments);
-
-    /**
-     * Strict Prompt
-     */
-    const prompt = `
-You are a Retrieval-Augmented Generation (RAG) assistant.
-
-You MUST answer ONLY using the CONTEXT provided below.
-
-==========================
-RULES
-==========================
-
-1. Never use your own knowledge.
-
-2. Never guess.
-
-3. Never use outside information.
-
-4. If the answer is NOT present in the context, reply EXACTLY:
-
-"I couldn't find that information in the uploaded documents."
-
-5. Do not explain why.
-
-6. Do not provide extra knowledge.
-
-7. Keep the answer concise.
-
-8. If the answer have a list, format it as a numbered list.
-
-==========================
-CONTEXT
-==========================
-
-${context}
-
-==========================
-QUESTION
-==========================
-
-${question}
-
-==========================
-ANSWER
-==========================
-`;
-
-    /**
-     * Ask Gemini
-     */
-    const response = await ai.models.generateContent({
-      model: `${process.env.GEMINI_MODEL || "gemini-3.1-flash-lite"}`,
-      contents: prompt,
     });
 
-    const answer =
-      response.text ||
-      response.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "I couldn't generate an answer.";
+    const documents = await retriever.invoke(question);
+
+    const context = documents
+        .map((document, index) => {
+
+            return `
+Document ${index + 1}
+
+Source Type:
+${document.metadata?.sourceType}
+
+Source:
+${document.metadata?.source}
+
+Page:
+${document.metadata?.loc?.pageNumber || "N/A"}
+
+Content:
+${document.pageContent}
+`;
+
+        })
+        .join("\n\n");
+
+    const chain = createRagChain();
+
+    const answer = await chain.invoke({
+
+        context,
+
+        question,
+
+    });
 
     return {
-      answer,
 
-      sources: filteredDocuments.map((doc) => ({
-        sourceName: doc.sourceName,
-        sourceType: doc.sourceType,
-        page: doc.page,
-        score: doc.score,
-      })),
+        answer,
+
+        sources: documents.map((document) => ({
+
+            sourceType: document.metadata?.sourceType,
+
+            source: document.metadata?.source,
+
+            page: document.metadata?.loc?.pageNumber,
+
+            content: document.pageContent,
+
+        })),
+
     };
-  } catch (error) {
-    console.error("RAG Error:", error);
-    throw error;
-  }
+
 };
 
 module.exports = {
-  askRag,
+    askRag,
 };
