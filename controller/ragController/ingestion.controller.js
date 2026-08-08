@@ -1,97 +1,103 @@
-const fs = require("fs/promises");
-const { ingestFile, ingestWebsite, ingestText } = require("../../service/ragService/ingestion.service");
+const { ragQueue } = require("../../queue/ragQueue");
 
-
-
+/**
+ * Upload File (PDF, DOCX, CSV, TXT)
+ */
 const uploadFile = async (req, res) => {
-  let filePath;
-
   try {
     if (!req.file) {
       return res.status(400).json({
+        success: false,
         message: "File is required",
       });
     }
 
-    filePath = req.file.path;
-
-    const result = await ingestFile({
-      filePath,
+    const job = await ragQueue.add("ingestion", {
+      type: "file",
+      filePath: req.file.path,
       originalName: req.file.originalname,
     });
 
-    return res.status(201).json({
-      message: "File ingested successfully",
-
-      ...result,
+    return res.status(202).json({
+      success: true,
+      message: "File uploaded successfully. Processing started.",
+      jobId: job.id,
     });
   } catch (error) {
     console.error(error);
 
     return res.status(500).json({
-      message: "File ingestion failed",
-
+      success: false,
+      message: "File upload failed",
       error: error.message,
     });
-  } finally {
-    if (filePath) {
-      try {
-        await fs.unlink(filePath);
-      } catch {
-        // File already removed
-      }
-    }
   }
 };
 
+/**
+ * Upload Website
+ */
 const uploadWebsite = async (req, res) => {
   try {
     const { url } = req.body;
 
     if (!url) {
       return res.status(400).json({
+        success: false,
         message: "Website URL is required",
       });
     }
 
-    const result = await ingestWebsite(url);
+    const job = await ragQueue.add("ingestion", {
+      type: "website",
+      url,
+    });
 
-    return res.status(201).json({
-      message: "Website ingested successfully",
-
-      ...result,
+    return res.status(202).json({
+      success: true,
+      message: "Website added to queue.",
+      jobId: job.id,
     });
   } catch (error) {
     console.error(error);
 
     return res.status(500).json({
+      success: false,
       message: "Website ingestion failed",
-
       error: error.message,
     });
   }
 };
 
+/**
+ * Upload Text
+ */
 const uploadText = async (req, res) => {
   try {
     const { text } = req.body;
 
-    if (!text || typeof text !== "string") {
+    if (!text || !text.trim()) {
       return res.status(400).json({
+        success: false,
         message: "Text is required",
       });
     }
 
-    const result = await ingestText(text);
+    const job = await ragQueue.add("ingestion", {
+      type: "text",
+      text: text.trim(),
+    });
 
-    return res.status(201).json({
-      message: "Text ingested successfully",
-      ...result,
+    return res.status(202).json({
+      success: true,
+      message: "Text added to queue.",
+      jobId: job.id,
     });
   } catch (error) {
     console.error(error);
 
     return res.status(500).json({
+      success: false,
       message: "Text ingestion failed",
       error: error.message,
     });

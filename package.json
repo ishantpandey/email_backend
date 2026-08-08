@@ -16,12 +16,14 @@
     "@langchain/community": "^1.1.29",
     "@langchain/core": "^1.2.4",
     "@langchain/google-genai": "^2.2.0",
+    "@langchain/langgraph": "^1.4.9",
+    "@langchain/langgraph-checkpoint-redis": "^1.0.10",
     "@langchain/pinecone": "^1.0.3",
     "@langchain/textsplitters": "^1.0.1",
     "@mozilla/readability": "^0.6.0",
     "@pinecone-database/pinecone": "^5.0.2",
     "@sendgrid/mail": "^8.1.6",
-    "axios": "^1.18.1",
+    "axios": "^1.19.0",
     "bcryptjs": "^3.0.2",
     "bullmq": "^5.66.0",
     "cheerio": "^1.2.0",
@@ -46,6 +48,7 @@
     "redis": "^5.10.0",
     "socket.io": "^4.8.1",
     "uuid": "^14.0.1",
-    "validator": "^13.15.23"
+    "validator": "^13.15.23",
+    "zod": "^4.4.3"
   }
 }

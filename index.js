@@ -3,7 +3,7 @@ const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-
+ const { initializeCheckpointer } = require("./agent/config/checkpointer.config");
 // Configuration
 dotenv.config();
 
@@ -15,6 +15,7 @@ const authRoutes = require("./router/authRoutes");
 const emailRoutes = require("./router/emailRoutes");
 const ingestionRoutes = require("./router/ingestion.routes");
 const chatRoutes = require("./router/chat.routes");
+const agentRoutes = require("./router/agentRoute");
 // Add this at the very top of your file
 const dns = require('node:dns');
 dns.setServers(['1.1.1.1', '8.8.8.8']); 
@@ -32,6 +33,19 @@ const initializeApp = async () => {
 };
 
 initializeApp();
+
+const initializedCheckpointer = async () => {
+ 
+ try {
+    await initializeCheckpointer();
+    console.log('✅ Checkpointer initialized successfully');
+  } catch (error) {
+    console.error('❌ Checkpointer initialization failed:', error);
+    process.exit(1);
+  }
+};
+
+initializedCheckpointer()
 
 const app = express();
 
@@ -62,6 +76,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/email", emailRoutes);
 app.use("/api/documents", ingestionRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/agent", agentRoutes);
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({

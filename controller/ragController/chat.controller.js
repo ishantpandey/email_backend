@@ -1,9 +1,11 @@
-const { askRag } = require("../../service/ragService/rag.service");
+const {  askRagStream } = require("../../service/ragService/rag.service");
+const { HumanMessage, AIMessage } = require("@langchain/core/messages");
 
 
-const askQuestion = async (req, res) => {
+
+const askQuestionStream = async (req, res) => {
   try {
-    const { question, sessionId } = req.body;
+    const { question } = req.body;
 
     if (!question || typeof question !== "string") {
       return res.status(400).json({
@@ -11,26 +13,63 @@ const askQuestion = async (req, res) => {
       });
     }
 
-    // Generate sessionId if not provided (use userId from auth middleware)
-    const session = sessionId || req.user?.id || `session_${Date.now()}`;
+    // Generate sessionId from userId
+    const session = req.user?.id;
 
-    const result = await askRag(question.trim(), session);
+    // Set headers for Server-Sent Events
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no'); // Disable buffering in nginx
 
-    return res.status(200).json({
-      success: true,
-      sessionId: session,
-      question,
-      answer: result.answer,
-      sources: result.sources,
-    });
+    // Get the stream
+    const { stream, documents, chatHistory, question: userQuestion } = await askRagStream(
+      question.trim(),
+      session
+    );
+
+    // Send sources first
+    const sources = documents.map((document) => ({
+      sourceType: document.metadata?.sourceType,
+      source: document.metadata?.source,
+      page: document.metadata?.loc?.pageNumber,
+      content: document.pageContent,
+    }));
+
+    res.write(`data: ${JSON.stringify({ type: 'sources', sources })}\n\n`);
+
+    // Accumulate the full answer for saving to history
+    let fullAnswer = '';
+
+    // Stream the response
+    for await (const chunk of stream) {
+      fullAnswer += chunk;
+      res.write(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`);
+    }
+
+    // Save to chat history
+    await chatHistory.addMessage(new HumanMessage(userQuestion));
+    await chatHistory.addMessage(new AIMessage(fullAnswer));
+
+    // Send completion signal
+    res.write(`data: ${JSON.stringify({ type: 'done', sessionId: session })}\n\n`);
+    res.end();
   } catch (error) {
     console.error(error);
-    return res.status(500).json({
-      message: "Question answering failed",
-      error: error.message,
-    });
+    
+    // Send error through SSE if headers already sent
+    if (res.headersSent) {
+      res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
+      res.end();
+    } else {
+      return res.status(500).json({
+        message: "Question answering failed",
+        error: error.message,
+      });
+    }
   }
 };
+
 module.exports = {
-  askQuestion,
+  askQuestionStream,
 };

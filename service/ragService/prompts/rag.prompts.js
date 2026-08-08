@@ -10,6 +10,8 @@ Chat History:
 
 Use the retrieved context AND the chat history to answer the question.
 If referring to previous messages, acknowledge them naturally.
+anser the question in a concise and informative manner, providing relevant details from the context.
+and return html formatted answer with proper headings, paragraphs, and lists where appropriate and use single line breaks.
 
 Context:
 {context}

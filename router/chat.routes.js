@@ -1,12 +1,13 @@
 const express = require("express");
 
-const { askQuestion } = require("../controller/ragController/chat.controller.js");
+const {
+  askQuestionStream,
+} = require("../controller/ragController/chat.controller.js");
+const authMiddleware = require("../middleware/auth.js");
 
 const router = express.Router();
 
-router.post(
-  "/",
-  askQuestion
-);
+
+router.post("/stream", authMiddleware, askQuestionStream);
 
 module.exports = router;

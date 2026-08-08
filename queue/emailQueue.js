@@ -1,8 +1,8 @@
 const { Queue, Worker } = require('bullmq');
 const nodemailer = require('nodemailer');
-const { redis } = require('../../config/redis');
-const { createWelcomeTemplate, createPasswordResetTemplate, createCustomTemplate, createEmailVerificationTemplate } = require('./emailTemplates');
-const User = require('../../model/user');
+const { redis } = require('../config/redis');
+const { createWelcomeTemplate, createPasswordResetTemplate, createCustomTemplate, createEmailVerificationTemplate } = require('../service/emailService/emailTemplates');
+const User = require('../model/user');
 require('dotenv').config();
 
 // Create email queue
