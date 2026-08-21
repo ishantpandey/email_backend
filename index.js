@@ -3,7 +3,7 @@ const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
- const { initializeCheckpointer } = require("./agent/config/checkpointer.config");
+ //const { initializeCheckpointer } = require("./agent/config/checkpointer.config");
 // Configuration
 dotenv.config();
 
@@ -34,18 +34,18 @@ const initializeApp = async () => {
 
 initializeApp();
 
-const initializedCheckpointer = async () => {
+// const initializedCheckpointer = async () => {
  
- try {
-    await initializeCheckpointer();
-    console.log('✅ Checkpointer initialized successfully');
-  } catch (error) {
-    console.error('❌ Checkpointer initialization failed:', error);
-    process.exit(1);
-  }
-};
+//  try {
+//     await initializeCheckpointer();
+//     console.log('✅ Checkpointer initialized successfully');
+//   } catch (error) {
+//     console.error('❌ Checkpointer initialization failed:', error);
+//     process.exit(1);
+//   }
+// };
 
-initializedCheckpointer()
+// initializedCheckpointer()
 
 const app = express();
 

@@ -20,26 +20,26 @@ const emailTool = tool(
 
     // Request approval - this will throw GraphInterrupt and pause execution
     // When resumed, it will return the approval value
-    const approval = interrupt({
-      type: "email_approval",
-      message: "Do you want me to send this email?",
-      email: recipientEmail,
-      subject,
-      message,
-      priority,
-    });
+    // const approval = interrupt({
+    //   type: "email_approval",
+    //   message: "Do you want me to send this email?",
+    //   email: recipientEmail,
+    //   subject,
+    //   message,
+    //   priority,
+    // });
 
-    // This code runs after the graph is resumed
-    console.log("========== EMAIL APPROVAL RESPONSE ==========");
-    console.log(approval);
+    // // This code runs after the graph is resumed
+    // console.log("========== EMAIL APPROVAL RESPONSE ==========");
+    // console.log(approval);
 
     // Check if user approved
-    if (!approval?.approved) {
-      return JSON.stringify({
-        success: false,
-        message: "Email sending cancelled by user.",
-      });
-    }
+    // if (!approval?.approved) {
+    //   return JSON.stringify({
+    //     success: false,
+    //     message: "Email sending cancelled by user.",
+    //   });
+    // }
 
     // User approved, send the email
     try {
@@ -78,9 +78,6 @@ send it to that address.
 
 If the user does not provide an email address,
 send it to the authenticated user's email.
-
-Before actually sending the email, the system
-will request user approval.
 
 Use this tool only when the user explicitly
 asks to send an email.

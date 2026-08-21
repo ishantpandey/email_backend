@@ -128,6 +128,37 @@ const queueHelpers = {
     return job;
   },
 
+  addReminderEmail: async (email, userName, title, description, options = {}) => {
+    if (!email || !userName || !title) {
+      throw new Error("Email, userName, and title are required");
+    }
+
+    // Prepare options with integer priority
+    const jobOptions = {
+      attempts: 3,
+      backoff: { type: "exponential", delay: 2000 },
+      removeOnComplete: 100,
+      removeOnFail: 100,
+      ...options,
+      priority: getPriority(options.priority || "normal"),
+    };
+
+    const job = await emailQueue.add(
+      "reminder-email",
+      {
+        type: "reminder",
+        email: email.toLowerCase().trim(),
+        userName: userName.trim(),
+        title: title.trim(),
+        description: description || "",
+      },
+      jobOptions
+    );
+
+    console.log(`⏰ Reminder email queued for ${email}`);
+    return job;
+  },
+
   addPasswordResetEmail: async (email, userName, resetLink, options = {}) => {
     if (!email || !userName || !resetLink) {
       throw new Error("Email, userName, and resetLink are required");

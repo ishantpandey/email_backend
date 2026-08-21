@@ -1,7 +1,7 @@
 const { Queue, Worker } = require('bullmq');
 const nodemailer = require('nodemailer');
 const { redis } = require('../config/redis');
-const { createWelcomeTemplate, createPasswordResetTemplate, createCustomTemplate, createEmailVerificationTemplate } = require('../service/emailService/emailTemplates');
+const { createWelcomeTemplate, createPasswordResetTemplate, createCustomTemplate, createEmailVerificationTemplate, createReminderTemplate } = require('../service/emailService/emailTemplates');
 const User = require('../model/user');
 require('dotenv').config();
 
@@ -83,6 +83,20 @@ const emailWorker = new Worker('emailQueue', async (job) => {
         to: email,
         subject: 'Verify Your Email Address',
         html: createEmailVerificationTemplate(userName, verificationLink)
+      };
+    } else if (type === 'reminder') {
+      const { title, description } = job.data;
+      if (!title) {
+        throw new Error('Reminder emails require title');
+      }
+      mailOptions = {
+        from: {
+          name: process.env.EMAIL_FROM_NAME || 'Your App',
+          address: process.env.EMAIL_USER
+        },
+        to: email,
+        subject: `⏰ Reminder: ${title}`,
+        html: createReminderTemplate(userName, title, description)
       };
     } else {
       throw new Error(`Unknown email type: ${type}`);

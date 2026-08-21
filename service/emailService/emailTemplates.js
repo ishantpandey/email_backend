@@ -119,9 +119,43 @@ function createEmailVerificationTemplate(userName, verificationLink) {
   `;
 }
 
+function createReminderTemplate(userName, title, description) {
+  return `
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
+      <h2 style="color: #333; text-align: center;">⏰ Reminder Alert</h2>
+      <p style="font-size: 16px; line-height: 1.6; color: #555;">
+        Hi ${userName}, this is your scheduled reminder!
+      </p>
+      <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+        <h3 style="margin: 0 0 10px 0; color: #856404; font-size: 18px;">
+          ${title}
+        </h3>
+        ${description ? `
+        <p style="margin: 0; color: #856404; font-size: 14px; line-height: 1.5;">
+          ${description}
+        </p>
+        ` : ''}
+      </div>
+      <div style="background-color: #f8f9fa; padding: 15px; border-radius: 6px; margin: 20px 0;">
+        <p style="margin: 0; font-size: 14px; color: #6c757d;">
+          📅 <strong>Reminder Time:</strong> ${new Date().toLocaleString()}
+        </p>
+      </div>
+      <p style="font-size: 14px; color: #888; text-align: center;">
+        This reminder was sent to help you stay on track with your tasks.
+      </p>
+      <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
+      <p style="font-size: 12px; color: #999; text-align: center;">
+        Sent at ${new Date().toLocaleString()}
+      </p>
+    </div>
+  `;
+}
+
 module.exports = {
   createWelcomeTemplate,
   createPasswordResetTemplate,
   createCustomTemplate,
-  createEmailVerificationTemplate
+  createEmailVerificationTemplate,
+  createReminderTemplate
 };
