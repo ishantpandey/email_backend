@@ -15,6 +15,7 @@ const { calculatorTool } = require("../../agent/tools/calculator.tool");
 const {
   createReminderTool,
   listRemindersTool,
+  getAllRemindersTool,
   cancelReminderTool,
 } = require("../../agent/tools/reminder.tool");
 
@@ -23,6 +24,8 @@ const { ragTool } = require("../../agent/tools/rag.tool");
 const { webTool } = require("../../agent/tools/web.tool");
 
 const { emailTool } = require("../../agent/tools/email.tool");
+
+const { getUserDetailsTool } = require("../../agent/tools/user.tool");
 
 const {
   getMemory,
@@ -74,9 +77,11 @@ const getAgent = async () => {
       ragTool,
       webTool,
       emailTool,
+      getUserDetailsTool,
 
       createReminderTool,
       listRemindersTool,
+      getAllRemindersTool,
       cancelReminderTool,
     ],
 
@@ -108,6 +113,10 @@ Available tools:
    Use reminder tools when the user explicitly asks
    to create, view, or cancel reminders.
 
+6. User Details
+   Use get_user_details to fetch user information by session ID.
+   If no session ID is provided, it fetches the current authenticated user's details.
+
 Email rules:
 
 - If the user provides an email address,
@@ -125,19 +134,18 @@ Reminder rules:
 
 - For relative reminders, ALWAYS use delayMinutes.
 
-- **IMPORTANT**: All times are in Indian Standard Time (IST, UTC+5:30).
-  When users say "2:36 PM today" or "tomorrow at 10 AM", 
-  they mean IST times.
+- **IMPORTANT**: Users provide times in Indian Standard Time (IST, UTC+5:30).
+  When users say "2:36 PM today" or "tomorrow at 10 AM", they mean IST times.
   
-- **CRITICAL - CHECK [CURRENT TIME IN IST]**: Every request includes the 
-  exact current date and time in IST. You MUST use this exact date 
-  from the system message when calculating "today", "tomorrow", etc.
-  DO NOT make up or hallucinate dates.
+- **CRITICAL - TIME CONVERSION**: You MUST convert IST times to UTC before 
+  passing to the tool:
+  * IST is UTC+5:30 (5 hours 30 minutes ahead of UTC)
+  * To convert IST to UTC: subtract 5 hours and 30 minutes
+  * Always provide the UTC time with 'Z' suffix in ISO format
+  * Current IST time is provided in each message: [CURRENT TIME IN IST: ...]
+  * Use this exact datetime to calculate "today", "tomorrow", etc.
 
 Examples:
-
-"Remind me in 1 minute"
-→ delayMinutes = 1
 
 "Remind me in 5 minutes"
 → delayMinutes = 5
@@ -145,17 +153,19 @@ Examples:
 "Remind me in 2 hours"
 → delayMinutes = 120
 
-"Remind me at 2:36 PM today"
-→ Look at [CURRENT TIME IN IST] message to get today's date
-→ Use that exact date with time 14:36:00
-→ Example: If current is 21/08/2026, use "2026-08-21T14:36:00"
-→ Format: YYYY-MM-DDTHH:mm:ss WITHOUT 'Z' or timezone
+"Remind me at 2:36 PM today" (User means 2:36 PM IST)
+→ Check [CURRENT TIME IN IST: 2026-08-21T12:00:00]
+→ Extract today's date: 2026-08-21
+→ Create IST time: 2026-08-21T14:36:00
+→ Convert to UTC: subtract 5:30 → 2026-08-21T09:06:00
+→ Pass to tool: "2026-08-21T09:06:00Z"
 
-"Remind me tomorrow at 10 AM"
-→ Look at [CURRENT TIME IN IST] to get today's date
-→ Add 1 day to that date
-→ Example: If current is 21/08/2026, use "2026-08-22T10:00:00"
-→ Format: YYYY-MM-DDTHH:mm:ss WITHOUT 'Z' or timezone
+"Remind me tomorrow at 10 AM" (User means 10 AM IST)
+→ Check [CURRENT TIME IN IST: 2026-08-21T12:00:00]
+→ Tomorrow = 2026-08-22
+→ Create IST time: 2026-08-22T10:00:00
+→ Convert to UTC: subtract 5:30 → 2026-08-22T04:30:00
+→ Pass to tool: "2026-08-22T04:30:00Z"
 
 - Do NOT calculate the current datetime for relative reminders.
 
@@ -163,8 +173,7 @@ Examples:
 
 - Use remindAt only for specific date/time requests.
 
-- When using remindAt, provide datetime WITHOUT 'Z' or timezone offset.
-  System will interpret it as IST automatically.
+- When using remindAt, ALWAYS convert IST to UTC and add 'Z' suffix.
 
 - Never invent userId.
 
@@ -246,31 +255,14 @@ const askAgent = async (question, sessionId, userEmail) => {
     const memory = await getMemory(sessionId);
 
     /*
-     * Get current IST time for context
+     * Get Current IST Time
      */
 
     const now = new Date();
-    const istTime = now.toLocaleString('en-IN', {
-      timeZone: 'Asia/Kolkata',
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
-    });
-    
-    const istDate = now.toLocaleDateString('en-IN', { 
-      timeZone: 'Asia/Kolkata', 
-      year: 'numeric', 
-      month: '2-digit', 
-      day: '2-digit' 
-    });
-
-    // Add IST context to the user's question
-    const questionWithContext = `[CURRENT TIME IN IST: ${istTime} | Today's date: ${istDate} | Users are in IST timezone (UTC+5:30)]\n\n${question}`;
+    // Convert to IST by adding 5:30 offset
+    const istTime = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+    const istString = istTime.toISOString().replace("Z", "").slice(0, 19);
+    const currentTimeContext = `[CURRENT TIME IN IST: ${istString} (Asia/Kolkata, UTC+5:30)]`;
 
     /*
      * Invoke Agent
@@ -283,7 +275,7 @@ const askAgent = async (question, sessionId, userEmail) => {
 
           {
             role: "user",
-            content: questionWithContext,
+            content: `${currentTimeContext}\n\n${question}`,
           },
         ],
       },
@@ -448,12 +440,6 @@ const handleApproval = async (sessionId, userEmail, userId, approved) => {
     throw error;
   }
 };
-
-/*
-|--------------------------------------------------------------------------
-| Export
-|--------------------------------------------------------------------------
-*/
 
 module.exports = {
   askAgent,

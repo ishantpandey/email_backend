@@ -4,6 +4,7 @@ const { z } = require("zod");
 const {
   createReminder,
   getPendingReminders,
+  getAllReminders,
   cancelReminder,
 } = require("../../service/reminderService/reminder.service");
 
@@ -76,18 +77,6 @@ const createReminderTool = tool(
           finalRemindAt = new Date(remindAt);
           console.log("✅ Using provided timezone");
         }
-        
-        // Log IST display time for verification
-        const istDisplay = finalRemindAt.toLocaleString('en-IN', {
-          timeZone: 'Asia/Kolkata',
-          year: 'numeric',
-          month: 'short',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true
-        });
-        console.log("🕒 Reminder will trigger at (IST):", istDisplay);
       } else {
         return JSON.stringify({
           success: false,
@@ -211,8 +200,8 @@ asks to create a reminder.
 
 IMPORTANT TIME RULES:
 
-**USER TIMEZONE: Indian Standard Time (IST, UTC+5:30)**
-Check SYSTEM INFO message for current IST time.
+**TIMEZONE: Expects UTC time**
+Users provide times in IST (UTC+5:30), but you must convert to UTC.
 
 1. For relative time requests, use delayMinutes.
 
@@ -239,23 +228,24 @@ datetime using the current server time.
 4. Use remindAt only when the user provides
 a specific date/time.
 
-**CRITICAL**: For absolute times, provide ISO format WITHOUT timezone suffix.
-The system will interpret it as IST automatically.
+**CRITICAL**: For absolute times:
+- User provides time in IST (Indian Standard Time, UTC+5:30)
+- You MUST convert IST to UTC (subtract 5 hours 30 minutes)
+- Provide UTC time in ISO format WITH 'Z' suffix
 
-Format: YYYY-MM-DDTHH:mm:ss (e.g., "2026-08-21T15:30:00")
+Format: YYYY-MM-DDTHH:mm:ssZ (e.g., "2026-08-21T09:06:00Z")
 
 Examples:
 
-"Remind me tomorrow at 10 AM."
--> Get current date from SYSTEM INFO, add 1 day, use "YYYY-MM-DDT10:00:00"
+"Remind me at 3 PM today" (User means 3 PM IST = 15:00 IST)
+-> Convert to UTC: 15:00 - 5:30 = 09:30 UTC
+-> Use "2026-08-21T09:30:00Z"
 
-"Remind me today at 3 PM."
--> Get current date from SYSTEM INFO, use "YYYY-MM-DDT15:00:00"
+"Remind me tomorrow at 10 AM" (User means 10 AM IST)
+-> Convert to UTC: 10:00 - 5:30 = 04:30 UTC
+-> Use "2026-08-22T04:30:00Z"
 
-"Remind me on Friday at 5 PM."
--> Calculate next Friday from SYSTEM INFO, use "YYYY-MM-DDT17:00:00"
-
-5. The reminder time must be in the future.
+5. The reminder time must be in the future (in UTC).
 
 Do not use this tool for general questions.
 `,
@@ -279,7 +269,7 @@ Do not use this tool for general questions.
         .string()
         .optional()
         .describe(
-          "Exact future reminder datetime in ISO 8601 format WITHOUT timezone suffix. Format: YYYY-MM-DDTHH:mm:ss (e.g., '2026-08-21T15:30:00'). Will be interpreted as IST. Use current IST time from SYSTEM INFO to calculate correct dates for 'today', 'tomorrow', etc.",
+          "Exact future reminder datetime in UTC (ISO 8601 format WITH 'Z' suffix). Format: YYYY-MM-DDTHH:mm:ssZ (e.g., '2026-08-21T09:30:00Z'). User provides IST times, so convert IST to UTC by subtracting 5 hours 30 minutes before passing here.",
         ),
 
       notificationType: z
@@ -311,7 +301,7 @@ const listRemindersTool = tool(
       }
 
       const reminders = await getPendingReminders(userId);
-
+      console.log("Pending reminders:", userId, reminders);
       return JSON.stringify({
         success: true,
 
@@ -352,6 +342,81 @@ Use this when the user asks:
 "Show my reminders."
 
 "What do I need to remember?"
+`,
+
+    schema: z.object({}),
+  },
+);
+
+/*
+|--------------------------------------------------------------------------
+| Get All Reminders
+|--------------------------------------------------------------------------
+*/
+
+const getAllRemindersTool = tool(
+  async (_, config) => {
+    try {
+      console.log("========== GET ALL REMINDERS TOOL ==========");
+
+      const userId = config?.configurable?.userId;
+
+      if (!userId) {
+        return JSON.stringify({
+          success: false,
+          message: "Authenticated user ID is required.",
+        });
+      }
+
+      const reminders = await getAllReminders(userId);
+      console.log("All reminders:", userId, reminders.length);
+      
+      return JSON.stringify({
+        success: true,
+
+        reminders: reminders.map((reminder) => ({
+          id: reminder._id.toString(),
+
+          title: reminder.title,
+
+          description: reminder.description,
+
+          remindAt: reminder.remindAt,
+
+          notificationType: reminder.notificationType,
+
+          status: reminder.status,
+
+          createdAt: reminder.createdAt,
+        })),
+      });
+    } catch (error) {
+      console.error("❌ Get all reminders error:", error);
+
+      return JSON.stringify({
+        success: false,
+        message: error.message,
+      });
+    }
+  },
+
+  {
+    name: "get_all_reminders",
+
+    description: `
+Get ALL of the authenticated user's reminders (pending, completed, and cancelled).
+
+Use this when the user asks:
+
+"Show me all my reminders."
+
+"Show my reminder history."
+
+"What are all my reminders?"
+
+"Show both active and past reminders."
+
+For pending reminders only, use list_reminders instead.
 `,
 
     schema: z.object({}),
@@ -457,5 +522,6 @@ list_reminders or conversation context.
 module.exports = {
   createReminderTool,
   listRemindersTool,
+  getAllRemindersTool,
   cancelReminderTool,
 };
